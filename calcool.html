@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>ממיר תאריכים</title>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+            text-align: right;
+            direction: rtl;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        p {
+            font-size: 16px;
+            color: #333;
+        }
+        .hidden {
+            display: none;
+        }
+        .current-date {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .current-date p {
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="current-date">
+        <p id="current-gregorian-date"></p>
+        <p id="current-hebrew-date"></p>
+    </div>
+
+    <div id="main-menu" class="container">
+        <h1>בחר המרה</h1>
+        <button onclick="showSection('gregorian-to-hebrew')">תאריך לועזי לעברי</button>
+        <button onclick="showSection('hebrew-to-gregorian')">תאריך עברי ללועזי</button>
+    </div>
+
+    <div id="gregorian-to-hebrew" class="container hidden">
+        <h2>הכנס את התאריך הלועזי</h2>
+        <label for="gregorian-day">יום:</label>
+        <input type="number" id="gregorian-day" placeholder="יום (DD)">
+        <label for="gregorian-month">חודש:</label>
+        <input type="number" id="gregorian-month" placeholder="חודש (MM)">
+        <label for="gregorian-year">שנה:</label>
+        <input type="number" id="gregorian-year" placeholder="שנה (YYYY)">
+        <button onclick="convertGregorianToHebrew()">המר לתאריך עברי</button>
+        <button onclick="showSection('main-menu')">חזרה לתפריט הראשי</button>
+    </div>
+
+    <div id="hebrew-to-gregorian" class="container hidden">
+        <h2>הכנס את התאריך העברי</h2>
+        <label for="hebrew-day">יום:</label>
+        <input type="text" id="hebrew-day" placeholder="יום (א׳)">
+        <label for="hebrew-month">חודש:</label>
+        <input type="text" id="hebrew-month" placeholder="חודש (תשרי)">
+        <label for="hebrew-year">שנה:</label>
+        <input type="text" id="hebrew-year" placeholder="שנה (תשפ״ב)">
+        <button onclick="convertHebrewToGregorian()">המר לתאריך לועזי</button>
+        <button onclick="showSection('main-menu')">חזרה לתפריט הראשי</button>
+    </div>
+
+    <div id="result" class="container hidden">
+        <h2>תוצאה</h2>
+        <p id="result-content"></p>
+        <div id="holidays-content"></div>
+        <button onclick="showSection('main-menu')">המר תאריך חדש</button>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('gregorian-to-hebrew').classList.add('hidden');
+            document.getElementById('hebrew-to-gregorian').classList.add('hidden');
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        function convertGregorianToHebrew() {
+            const day = parseInt(document.getElementById('gregorian-day').value);
+            const month = parseInt(document.getElementById('gregorian-month').value);
+            const year = parseInt(document.getElementById('gregorian-year').value);
+
+            if (isNaN(day) || isNaN(month) || isNaN(year)) {
+                alert("אנא הכנס תאריך לועזי תקין.");
+                return;
+            }
+
+            const url = `https://www.hebcal.com/converter?cfg=json&gy=${year}&gm=${month}&gd=${day}&g2h=1`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const hebrewDate = data.hebrew;
+                    const dayOfWeek = new Date(year, month - 1, day).toLocaleDateString('he-IL', { weekday: 'long' });
+
+                    const resultContent = `
+                        <p>${day}-${month}-${year}</p>
+                        <p>${hebrewDate}</p>
+                        <p>יום בשבוע: ${dayOfWeek}</p>
+                    `;
+                    document.getElementById('result-content').innerHTML = resultContent;
+                    showHolidays(year, month);
+                    showSection('result');
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function convertHebrewToGregorian() {
+            const hebrewDay = document.getElementById('hebrew-day').value;
+            const hebrewMonth = document.getElementById('hebrew-month').value;
+            const hebrewYear = document.getElementById('hebrew-year').value;
+
+            if (!hebrewDay || !hebrewMonth || !hebrewYear) {
+                alert("אנא הכנס תאריך עברי תקין.");
+                return;
+            }
+
+            const url = `https://www.hebcal.com/converter?cfg=json&hy=${encodeURIComponent(hebrewYear)}&hm=${encodeURIComponent(hebrewMonth)}&hd=${encodeURIComponent(hebrewDay)}&h2g=1`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.gd || !data.gm || !data.gy) {
+                        alert("תאריך עברי לא תקין.");
+                        return;
+                    }
+                    const gregorianDate = `${data.gd}-${data.gm}-${data.gy}`;
+                    const dayOfWeek = new Date(data.gy, data.gm - 1, data.gd).toLocaleDateString('he-IL', { weekday: 'long' });
+
+                    const resultContent = `
+                        <p>${hebrewDay} ${hebrewMonth} ${hebrewYear}</p>
+                        <p>${gregorianDate}</p>
+                        <p>יום בשבוע: ${dayOfWeek}</p>
+                    `;
+                    document.getElementById('result-content').innerHTML = resultContent;
+                    showHolidays(data.gy, data.gm);
+                    showSection('result');
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function showCurrentDate() {
+            const now = new Date();
+            const gregorianDate = now.toLocaleDateString('he-IL');
+            const dayOfWeek = now.toLocaleDateString('he-IL', { weekday: 'long' });
+
+            const url = `https://www.hebcal.com/converter?cfg=json&gy=${now.getFullYear()}&gm=${now.getMonth() + 1}&gd=${now.getDate()}&g2h=1`;
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const hebrewDate = data.hebrew;
+                    document.getElementById('current-gregorian-date').textContent = `${dayOfWeek}, ${gregorianDate}`;
+                    document.getElementById('current-hebrew-date').textContent = `${hebrewDate}`;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function showHolidays(year, month) {
+            const hebcalUrl = `https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&year=${year}&month=${month}&c=on&lg=h`;
+
+            fetch(hebcalUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const holidays = data.items;
+                    let holidaysContent = '';
+
+                    if (holidays.length === 0) {
+                        holidaysContent = 'אין מועדים מיוחדים';
+                    } else {
+                        holidays.forEach(holiday => {
+                            const holidayDate = new Date(holiday.date);
+                            const dayOfWeek = holidayDate.toLocaleDateString('he-IL', { weekday: 'long' });
+                            const gregorianDate = holidayDate.toLocaleDateString('he-IL');
+                            holidaysContent += `<p>${holiday.hebrew} - ${dayOfWeek}, ${gregorianDate}</p>`;
+                        });
+                    }
+
+                    document.getElementById('holidays-content').innerHTML = holidaysContent;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        document.addEventListener('DOMContentLoaded', showCurrentDate);
+    </script>
+</body>
+</html>
